@@ -34,6 +34,15 @@ app.get('/api/persons', (request, response) => {
   response.json(persons);
 });
 
+app.get('/info', (request, response) => {
+  const phonebookEntries = `<p>Phonebook has info for ${persons.length} people`;
+
+  const date = new Date();
+  const currentTime = `<p>${date}</p>`;
+
+  response.send(phonebookEntries.concat(currentTime));
+});
+
 app.get('/api/notes/:id', (request, response) => {
   const id = request.params.id;
   const note = notes.find(note => note.id === id);
@@ -78,6 +87,7 @@ app.post('/api/notes', (request, response) => {
 
   response.json(note);
 });
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
