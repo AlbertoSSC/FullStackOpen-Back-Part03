@@ -1,7 +1,14 @@
 const express = require('express');
+const morgan = require('morgan');
+
+morgan.token('body', req => JSON.stringify(req.body));
+
 const app = express();
 
 app.use(express.json());
+app.use(
+  morgan(':method :url :status :res[content-length] - :response-time ms :body')
+);
 
 let persons = [
   {
@@ -30,10 +37,6 @@ app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>');
 });
 
-app.get('/api/persons', (request, response) => {
-  response.json(persons);
-});
-
 app.get('/info', (request, response) => {
   const phonebookEntries = `<p>Phonebook has info for ${persons.length} people`;
 
@@ -43,49 +46,63 @@ app.get('/info', (request, response) => {
   response.send(phonebookEntries.concat(currentTime));
 });
 
-app.get('/api/notes/:id', (request, response) => {
-  const id = request.params.id;
-  const note = notes.find(note => note.id === id);
+app.get('/api/persons', (request, response) => {
+  response.json(persons);
+});
 
-  if (note) {
-    response.json(note);
+app.get('/api/persons/:id', (request, response) => {
+  const id = request.params.id;
+  const person = persons.find(person => person.id.toString() === id);
+
+  if (person) {
+    response.json(person);
   } else {
     response.status(404).end();
   }
 });
 
-app.delete('/api/notes/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response) => {
   const id = request.params.id;
-  notes = notes.filter(note => note.id !== id);
+  persons = persons.filter(note => note.id !== id);
 
   response.status(204).end();
 });
 
 const generateId = () => {
   const maxId =
-    notes.length > 0 ? Math.max(...notes.map(n => Number(n.id))) : 0;
+    persons.length > 0 ? Math.max(...persons.map(n => Number(n.id))) : 0;
 
-  return String(maxId + 1);
+  return maxId + 1;
 };
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/persons', (request, response) => {
   const body = request.body;
 
-  if (!body.content) {
-    return response.status(400).json({
-      error: 'content missing',
-    });
-  }
-
-  const note = {
-    content: body.content,
-    important: Boolean(body.important) || false,
+  const person = {
+    name: body.name,
+    number: body.number,
     id: generateId(),
   };
 
-  notes = notes.concat(note);
+  if (!body.name || !body.number) {
+    return response.status(400).json({
+      error: 'name or number missing',
+    });
+  }
 
-  response.json(note);
+  const duplicateName = persons.find(
+    person => person.name.toLowerCase() === body.name.toLowerCase()
+  );
+
+  if (duplicateName) {
+    return response.status(400).json({
+      error: 'name must be unique',
+    });
+  }
+
+  persons = persons.concat(person);
+
+  response.json(person);
 });
 
 const PORT = 3001;
